@@ -30,6 +30,14 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Check Android project
+        run: |
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/quitlin/chat/MainActivity.kt
+
       - name: Build APK
         run: gradle assembleDebug
 
