@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10111a">
+<title>كويتلن | دردشة عالمية</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10111a;color:#f5f5fa;font-family:Arial,sans-serif}
+header{padding:22px 18px;background:#191a27;border-bottom:1px solid #343448}
+.logo{font-size:29px;font-weight:bold;color:#d9baff}
+header p{color:#aaaabd;margin-bottom:0}
+main{padding:18px;max-width:650px;margin:auto}
+h2{font-size:21px}
+.card{background:#1b1c2b;border:1px solid #343448;border-radius:17px;padding:17px;margin:14px 0}
+input,button{font:inherit;border-radius:10px;padding:13px;border:1px solid #414158}
+input{width:100%;background:#11121c;color:white;margin:7px 0}
+button{background:#9a72e8;color:white;border:0;font-weight:bold;cursor:pointer}
+button:active{opacity:.8}
+.primary{width:100%;margin-top:8px}
+.room{display:flex;align-items:center;gap:12px}
+.flag{font-size:27px}
+.muted{color:#a5a5ba;font-size:14px}
+.online{color:#68dfa3}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+nav button{flex:1;min-width:95px;background:#29283c}
+nav button.active{background:#8054ce}
+.hidden{display:none}
+#messages{height:210px;overflow:auto;background:#11121c;padding:10px;border-radius:10px;margin:12px 0}
+.message{padding:8px;margin:6px 0;background:#29283c;border-radius:9px;overflow-wrap:anywhere}
+footer{text-align:center;color:#85859b;padding:24px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✦ كويتلن</div>
+  <p>دردش وتعرّف على أصدقاء من العالم</p>
+</header>
+<main>
+  <section id="welcome" class="card">
+    <h2>مرحباً بك في كويتلن 🌍</h2>
+    <p class="muted">اختر اسمك وصورتك للبدء في استكشاف الواجهة.</p>
+    <label>اسم المستخدم</label>
+    <input id="username" maxlength="24" placeholder="اكتب اسمك هنا">
+    <label>صورتك الشخصية (اختياري)</label>
+    <input id="photo" type="file" accept="image/*">
+    <button class="primary" onclick="enterApp()">دخول إلى كويتلن</button>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card">
+      <div id="profile">أهلاً بك</div>
+      <p class="muted">هذه نسخة أولية من واجهة التطبيق.</p>
+    </div>
+    <nav>
+      <button class="active" onclick="showTab('rooms',this)">🌐 الغرف</button>
+      <button onclick="showTab('chat',this)">💬 الدردشة</button>
+      <button onclick="showTab('about',this)">👤 حسابي</button>
+    </nav>
+    <section id="rooms">
+      <h2>غرف من العالم</h2>
+      <div class="card room"><span class="flag">🌍</span><div><b>الغرفة العالمية</b><p class="muted">تعارف من مختلف الدول</p></div><button onclick="openRoom('الغرفة العالمية')">دخول</button></div>
+      <div class="card room"><span class="flag">🇾🇪</span><div><b>غرفة اليمن</b><p class="muted">أصدقاء ودردشة عربية</p></div><button onclick="openRoom('غرفة اليمن')">دخول</button></div>
+      <div class="card room"><span class="flag">🇸🇦</span><div><b>غرفة الخليج</b><p class="muted">تعارف وحديث عام</p></div><button onclick="openRoom('غرفة الخليج')">دخول</button></div>
+      <div class="card room"><span class="flag">🌙</span><div><b>غرفة الأصدقاء</b><p class="muted">مساحة للحديث والتعارف</p></div><button onclick="openRoom('غرفة الأصدقاء')">دخول</button></div>
+    </section>
+    <section id="chat" class="hidden">
+      <h2 id="roomTitle">الدردشة</h2>
+      <p class="muted">رسائل تجريبية على هذا الجهاز فقط.</p>
+      <div id="messages"></div>
+      <input id="msg" placeholder="اكتب رسالة..." maxlength="500">
+      <button class="primary" onclick="sendMessage()">إرسال الرسالة</button>
+    </section>
+    <section id="about" class="hidden">
+      <div class="card"><h2>حسابي</h2><p id="accountName"></p><p class="muted">شارة التوثيق تُمنح بعد مراجعة طلب من المالك في النسخة المتصلة بالخادم.</p></div>
+    </section>
+  </section>
+</main>
+<footer>كويتلن © 2026 — نسخة تجريبية أولية</footer>
+<script>
+let currentRoom='الدردشة';
+function enterApp(){
+ const name=document.getElementById('username').value.trim();
+ if(!name){alert('اكتب اسمك أولاً');return}
+ document.getElementById('welcome').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
+ document.getElementById('profile').textContent='👋 أهلاً، '+name;
+ document.getElementById('accountName').textContent='اسمك: '+name;
+ const file=document.getElementById('photo').files[0];
+ if(file){
+  const img=document.createElement('img');
+  img.alt='صورتك';img.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-left:8px';
+  img.src=URL.createObjectURL(file);
+  document.getElementById('profile').prepend(img);
+ }
+}
+function showTab(id,btn){
+ ['rooms','chat','about'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));
+ document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+ btn.classList.add('active');
+}
+function openRoom(name){
+ currentRoom=name;
+ document.getElementById('roomTitle').textContent=name;
+ showTab('chat',document.querySelectorAll('nav button')[1]);
+}
+function sendMessage(){
+ const field=document.getElementById('msg');
+ const value=field.value.trim();
+ if(!value)return;
+ const item=document.createElement('div');
+ item.className='message';
+ item.textContent=value;
+ document.getElementById('messages').appendChild(item);
+ field.value='';
+ document.getElementById('messages').scrollTop=999999;
+}
+</script>
+</body>
+</html>
