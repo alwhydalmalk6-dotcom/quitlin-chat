@@ -1,0 +1,36 @@
+# quitlin-chat
+
+name: Build Quitlin APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android tools
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
+        run: |
+          echo "Preparing Quitlin web app"
+          mkdir -p output
+          echo "Web interface is in index.html"
+          echo "This is not yet an Android APK." > output/README.txt
+
+      - name: Upload build information
+        uses: actions/upload-artifact@v4
+        with:
+          name: quitlin-build-info
+          path: output/
+          
