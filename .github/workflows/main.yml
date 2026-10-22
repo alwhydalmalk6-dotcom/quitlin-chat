@@ -12,22 +12,37 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: List repository files
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Fix nested project files
         run: |
-          echo "=== ROOT ==="
-          ls -la
-          echo "=== PROJECT FILES ==="
-          find . -type f \( \
-            -name "settings.gradle" -o \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle" -o \
-            -name "build.gradle.kts" -o \
-            -name "AndroidManifest.xml" -o \
-            -name "MainActivity.kt" \
-          \) -print
+          set -e
+          mv settings.gradle.kts/settings.gradle.kts settings.gradle.kts
+          mv build.gradle.kts/build.gradle.kts build.gradle.kts
+          mv app/src/main/AndroidManifest.xml/app/src/main/AndroidManifest.xml app/src/main/AndroidManifest.xml
+
+      - name: Build APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: quitlin-chat-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
