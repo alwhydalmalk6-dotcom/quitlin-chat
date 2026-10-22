@@ -19,32 +19,41 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Show project files
+        run: |
+          echo "Repository folders:"
+          find . -maxdepth 5 -type f | sort | head -300
+
+      - name: Find Android project
+        id: project
+        shell: bash
+        run: |
+          if [ -f settings.gradle.kts ] && [ -f app/build.gradle.kts ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          elif [ -f برنامج/settings.gradle.kts ] && [ -f برنامج/app/build.gradle.kts ]; then
+            echo "dir=برنامج" >> "$GITHUB_OUTPUT"
+          else
+            echo "Android project files were not found in expected locations."
+            exit 1
+          fi
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Check project files
-        run: |
-          test -f settings.gradle.kts
-          test -f build.gradle.kts
-          test -f app/build.gradle.kts
-          test -f app/src/main/AndroidManifest.xml
-          test -f app/src/main/java/com/quitlin/chat/MainActivity.kt
-
       - name: Build APK
-        run: gradle assembleDebug
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          gradle --version
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: quitlin-chat-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            برنامج/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
