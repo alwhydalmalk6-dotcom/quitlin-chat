@@ -14,7 +14,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -30,40 +29,18 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Inspect and fix project paths
+      - name: Prepare project
         shell: bash
         run: |
           set -e
-          echo "Checking project files..."
-          find . -maxdepth 7 -type f \( \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle.kts" -o \
-            -name "AndroidManifest.xml" -o \
-            -name "MainActivity.kt" \
-          \) -print
-
-          if [ -d "settings.gradle.kts" ] && [ -f "settings.gradle.kts/settings.gradle.kts" ]; then
-            cp "settings.gradle.kts/settings.gradle.kts" /tmp/quitlin-settings.gradle.kts
-            rm -rf settings.gradle.kts
-            mv /tmp/quitlin-settings.gradle.kts settings.gradle.kts
-          fi
-
-          if [ -d "build.gradle.kts" ] && [ -f "build.gradle.kts/build.gradle.kts" ]; then
-            cp "build.gradle.kts/build.gradle.kts" /tmp/quitlin-build.gradle.kts
-            rm -rf build.gradle.kts
-            mv /tmp/quitlin-build.gradle.kts build.gradle.kts
-          fi
-
-          if [ -d "app/src/main/AndroidManifest.xml" ] && [ -f "app/src/main/AndroidManifest.xml/app/src/main/AndroidManifest.xml" ]; then
-            cp "app/src/main/AndroidManifest.xml/app/src/main/AndroidManifest.xml" /tmp/quitlin-manifest.xml
-            rm -rf app/src/main/AndroidManifest.xml
-            mv /tmp/quitlin-manifest.xml app/src/main/AndroidManifest.xml
-          fi
-
-          test -f settings.gradle.kts
-          test -f build.gradle.kts
+          cp settings.gradle.kts/settings.gradle.kts /tmp/settings.gradle.kts
+          cp build.gradle.kts/build.gradle.kts /tmp/build.gradle.kts
+          cp app/src/main/AndroidManifest.xml/app/src/main/AndroidManifest.xml /tmp/AndroidManifest.xml
+          rm -rf settings.gradle.kts build.gradle.kts app/src/main/AndroidManifest.xml
+          cp /tmp/settings.gradle.kts ./settings.gradle.kts
+          cp /tmp/build.gradle.kts ./build.gradle.kts
+          cp /tmp/AndroidManifest.xml app/src/main/AndroidManifest.xml
           test -f app/build.gradle.kts
-          test -f app/src/main/AndroidManifest.xml
           test -f app/src/main/java/com/quitlin/chat/MainActivity.kt
 
       - name: Build APK
