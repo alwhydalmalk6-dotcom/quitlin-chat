@@ -1,12 +1,11 @@
 
-name: Build Quitlin Chat APK
+name: Build Quitlin APK
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
-      - master
 
 permissions:
   contents: read
@@ -14,8 +13,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout source
+      - name: Download project
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -24,16 +24,60 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Repair project file paths
+        shell: bash
+        run: |
+          set -e
+
+          repair_file() {
+            target="$1"
+            pattern="$2"
+
+            if [ -f "$target" ]; then
+              echo "OK: $target"
+              return
+            fi
+
+            if [ -d "$target" ]; then
+              source_file="$(find "$target" -maxdepth 4 -type f -name "$pattern" | head -n 1)"
+              if [ -z "$source_file" ]; then
+                echo "ERROR: No source file found inside $target"
+                find "$target" -maxdepth 4 -print
+                exit 1
+              fi
+
+              temp_file="${target}.recovered"
+              cp "$source_file" "$temp_file"
+              rm -rf "$target"
+              mv "$temp_file" "$target"
+              echo "Repaired: $target"
+              return
+            fi
+
+            echo "ERROR: Missing $target"
+            exit 1
+          }
+
+          repair_file build.gradle.kts 'build.gradle.kts*'
+          repair_file settings.gradle.kts 'settings.gradle.kts*'
+          repair_file gradle.properties 'gradle.properties*'
+          repair_file app/src/main/AndroidManifest.xml 'AndroidManifest.xml*'
+          repair_file app/src/main/java/com/quitlin/chat/MainActivity.kt 'MainActivity.kt*'
+
+          test -f app/build.gradle.kts
+          echo "Project files are ready."
+
+      - name: Build debug APK
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-          
-      - name: Diagnose project files
-        shell: bash
-        run: |
-          echo "=== ROOT FILES ==="
-          ls -la
-          echo "=== GRADLE AND ANDROID FILES ==="
-          find . -maxdepth 9 \( -name "settings.gradle.kts" -o -name "build.gradle.kts" -o -name "AndroidManifest.xml" -o -name "MainActivity.kt" \) -print
-          echo "=== END DIAGNOSTICS ==="
+
+      - name: Assemble APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Quitlin-debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
