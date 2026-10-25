@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download project
+      - name: Checkout project
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -24,10 +24,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Repair project file paths
+      - name: Repair project files
         shell: bash
         run: |
-          set -e
+          set -eu
+
+          echo "=== Repairing Gradle files ==="
 
           repair_file() {
             target="$1"
@@ -38,44 +40,61 @@ jobs:
               return
             fi
 
-            if [ -d "$target" ]; then
-              source_file="$(find "$target" -maxdepth 4 -type f -name "$pattern" | head -n 1)"
-              if [ -z "$source_file" ]; then
-                echo "ERROR: No source file found inside $target"
-                find "$target" -maxdepth 4 -print
-                exit 1
-              fi
+            source_file="$(find "$target" -maxdepth 10 -type f -name "$pattern" -print -quit 2>/dev/null || true)"
 
-              temp_file="${target}.recovered"
-              cp "$source_file" "$temp_file"
-              rm -rf "$target"
-              mv "$temp_file" "$target"
-              echo "Repaired: $target"
-              return
+            if [ -z "$source_file" ]; then
+              echo "ERROR: Cannot find source for $target"
+              find . -maxdepth 10 -print
+              exit 1
             fi
 
-            echo "ERROR: Missing $target"
-            exit 1
+            temp="${target}.recovered"
+            cp "$source_file" "$temp"
+            rm -rf "$target"
+            mv "$temp" "$target"
+            echo "Repaired: $target"
           }
 
           repair_file build.gradle.kts 'build.gradle.kts*'
           repair_file settings.gradle.kts 'settings.gradle.kts*'
           repair_file gradle.properties 'gradle.properties*'
           repair_file app/src/main/AndroidManifest.xml 'AndroidManifest.xml*'
-          repair_file app/src/main/java/com/quitlin/chat/MainActivity.kt 'MainActivity.kt*'
+
+          echo "=== Finding MainActivity ==="
+
+          ACTIVITY="app/src/main/java/com/quitlin/chat/MainActivity.kt"
+
+          if [ ! -f "$ACTIVITY" ]; then
+            SOURCE="$(find app -type f -name 'MainActivity.kt*' ! -name '*.recovered' -print -quit)"
+
+            if [ -z "$SOURCE" ]; then
+              echo "ERROR: MainActivity source file not found"
+              find app -maxdepth 12 -print
+              exit 1
+            fi
+
+            mkdir -p "$(dirname "$ACTIVITY")"
+            cp "$SOURCE" "$ACTIVITY"
+          fi
 
           test -f app/build.gradle.kts
+          test -f "$ACTIVITY"
+
+          echo "=== MainActivity preview ==="
+          head -n 12 "$ACTIVITY"
+
           echo "Project files are ready."
 
-      - name: Build debug APK
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Assemble APK
+      - name: Build debug APK
         run: gradle assembleDebug --no-daemon
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Quitlin-debug-APK
