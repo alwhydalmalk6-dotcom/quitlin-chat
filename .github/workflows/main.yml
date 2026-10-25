@@ -24,18 +24,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Inspect and repair files
+      - name: Repair project files
         shell: bash
         run: |
           set -eu
 
-          echo "=== All files related to MainActivity ==="
-          find . -type f -iname '*MainActivity*' -print || true
-
-          echo "=== All files inside app ==="
-          find app -maxdepth 15 -print || true
-
-          echo "=== Repair Gradle settings ==="
           repair_file() {
             target="$1"
             pattern="$2"
@@ -45,16 +38,23 @@ jobs:
               return
             fi
 
-            source_file="$(find "$target" -maxdepth 15 -type f -name "$pattern" -print -quit 2>/dev/null || true)"
-
-            if [ -z "$source_file" ]; then
-              echo "ERROR: Missing source for $target"
+            if [ ! -d "$target" ]; then
+              echo "ERROR: Missing $target"
               exit 1
             fi
 
-            cp "$source_file" "${target}.recovered"
+            source_file="$(find "$target" -maxdepth 15 -type f -name "$pattern" -print -quit)"
+
+            if [ -z "$source_file" ]; then
+              echo "ERROR: Source not found inside $target"
+              find "$target" -maxdepth 15 -print
+              exit 1
+            fi
+
+            temp="${target}.recovered"
+            cp "$source_file" "$temp"
             rm -rf "$target"
-            mv "${target}.recovered" "$target"
+            mv "$temp" "$target"
             echo "Repaired: $target"
           }
 
@@ -62,25 +62,14 @@ jobs:
           repair_file settings.gradle.kts 'settings.gradle.kts*'
           repair_file gradle.properties 'gradle.properties*'
           repair_file app/src/main/AndroidManifest.xml 'AndroidManifest.xml*'
-
-          echo "=== Locate Kotlin source ==="
-          ACTIVITY="app/src/main/java/com/quitlin/chat/MainActivity.kt"
-
-          if [ ! -f "$ACTIVITY" ]; then
-            SOURCE="$(find . -type f -name 'MainActivity.kt*' ! -name '*.recovered' ! -path './.git/*' -print -quit || true)"
-
-            if [ -z "$SOURCE" ]; then
-              echo "ERROR: No MainActivity source exists in this repository."
-              echo "The Kotlin source must be restored or recreated."
-              exit 1
-            fi
-
-            mkdir -p "$(dirname "$ACTIVITY")"
-            cp "$SOURCE" "$ACTIVITY"
-          fi
+          repair_file app/src/main/java/com/quitlin/chat/MainActivity.kt 'MainActivity.kt*'
 
           test -f app/build.gradle.kts
-          test -f "$ACTIVITY"
+
+          echo "=== Verify repaired files ==="
+          ls -l build.gradle.kts settings.gradle.kts gradle.properties
+          ls -l app/src/main/AndroidManifest.xml
+          ls -l app/src/main/java/com/quitlin/chat/MainActivity.kt
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
